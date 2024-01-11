@@ -65,17 +65,15 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+        		<groupId>com.google.cloud.tools</groupId>
+        		<artifactId>jib-maven-plugin</artifactId>
+        		<version>3.4.0</version>
+        		<configuration>
+          			<to>
+            			<image>ashishchaudhary008/${project.artifactId}:s6</image>
+          			</to>
+        		</configuration>
+      		</plugin>
 		</plugins>
 	</build>
 
