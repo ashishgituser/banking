@@ -58,6 +58,7 @@
 		</dependency>
 	</dependencies>
 
+	<!-- Build commands -->
 	<!-- Build using google jib - mvn compile jib:dockerBuild-->
 	<!-- If docker is not installed - mvn compile jib:build -->
 	<build>
