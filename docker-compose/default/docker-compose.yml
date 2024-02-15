@@ -1,4 +1,60 @@
+version: '3'
+
 services:
+  rabbit:
+    image: rabbitmq:3.12-management
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    extends:
+      file: common-config.yml
+      service: network-deploy-service
+
+  configserver:
+    image: "ashishchaudhary008/configserver:s8"
+    container_name: configserver-ms
+    ports:
+      - "8071:8071"
+    depends_on:
+      rabbit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent localhost:8071/actuator/health/readiness | grep UP || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+  eurekaserver:
+    image: "ashishchaudhary008/eurekaserver:s8"
+    container_name: eurekaserver-ms
+    ports:
+      - "8070:8070"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent localhost:8070/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      configserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "eurekaserver"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
   accountsdb:
     container_name: accountsdb
     ports:
@@ -29,42 +85,8 @@ services:
       file: common-config.yml
       service: microservice-db-config
 
-  rabbit:
-    image: rabbitmq:3.12-management
-    hostname: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: rabbitmq-diagnostics check_port_connectivity
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    extends:
-      file: common-config.yml
-      service: network-deploy-service
-
-  configserver:
-    image: "ashishchaudhary008/configserver:s7"
-    container_name: configserver-ms
-    ports:
-      - "8071:8071"
-    depends_on:
-      rabbit:
-        condition: service_healthy
-    healthcheck:
-      test: "curl --fail --silent localhost:8071/actuator/health/readiness | grep UP || exit 1"
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
-    extends:
-      file: common-config.yml
-      service: microservice-base-config
-
   accounts:
-    image: "ashishchaudhary008/accounts:s7"
+    image: "ashishchaudhary008/accounts:s8"
     container_name: accounts-ms
     ports:
       - "8080:8080"
@@ -72,16 +94,15 @@ services:
       SPRING_APPLICATION_NAME: "accounts"
       SPRING_DATASOURCE_URL: "jdbc:mysql://accountsdb:3306/accountsdb"
     depends_on:
-      configserver:
-        condition: service_healthy
-      accountsdb:
-       condition: service_healthy
+      - configserver
+      - accountsdb
+      - eurekaserver
     extends:
       file: common-config.yml
       service: microservice-configserver-config
 
   loans:
-    image: "ashishchaudhary008/loans:s7"
+    image: "ashishchaudhary008/loans:s8"
     container_name: loans-ms
     ports:
       - "8090:8090"
@@ -89,24 +110,22 @@ services:
       SPRING_APPLICATION_NAME: "loans"
       SPRING_DATASOURCE_URL: "jdbc:mysql://loansdb:3306/loansdb"
     depends_on:
-      configserver:
-        condition: service_healthy
-      loansdb:
-        condition: service_healthy
+      - configserver
+      - loansdb
+      - eurekaserver
     extends:
       file: common-config.yml
       service: microservice-configserver-config
 
   cards:
-    image: "ashishchaudhary008/cards:s7"
+    image: "ashishchaudhary008/cards:s8"
     container_name: cards-ms
     ports:
       - "9000:9000"
     depends_on:
-      configserver:
-        condition: service_healthy
-      cardsdb:
-        condition: service_healthy
+      - configserver
+      - cardsdb
+      - eurekaserver
     environment:
       SPRING_APPLICATION_NAME: "cards"
       SPRING_DATASOURCE_URL: "jdbc:mysql://cardsdb:3306/cardsdb"
